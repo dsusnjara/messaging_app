@@ -28,6 +28,7 @@ class User(db.Model):
 class Message(db.Model):
     __tablename__ = "message"
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.Text)
     message = db.Column(db.Text)
     sender_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     receiver_id = db.Column(db.Integer, db.ForeignKey("user.id"))
