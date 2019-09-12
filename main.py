@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, make_response, redirect, url_for
 from models import db, User, Message
-import requests
 from os import urandom
 import hashlib
 import uuid
@@ -14,14 +13,7 @@ app.secret_key = urandom(24)
 def index():
     session_token = request.cookies.get("session_token")
     user = db.query(User).filter_by(session_token=session_token).first()
-
-    query = "Zagreb"
-    unit = "metric"
-    api_key = ""
-
-    url = "https://api.openweathermap.org/data/2.5/weather?q={0}&units={1}&appid={2}".format(query, unit, api_key)
-    data = requests.get(url=url)
-    return render_template("index.html", user=user, data=data.json())
+    return render_template("index.html", user=user)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -94,18 +86,12 @@ def send():
         return redirect(url_for("index", user=user))
 
 
-@app.route("/received", methods=["GET", "POST"])
+@app.route("/received", methods=["GET"])
 def received():
     session_token = request.cookies.get("session_token")
     user = db.query(User).filter_by(session_token=session_token).first()
     user_id = user.id
     received_messages = db.query(Message).filter_by(receiver_id=user_id).all()
-    message1 = db.query(Message).filter_by(receiver_id=user_id).first()
-
-    if request.method == "POST":
-        db.delete(message1)
-        db.commit()
-        return redirect(url_for("received"))
 
     return render_template("received.html", received_messages=received_messages, user=user)
 
@@ -132,6 +118,18 @@ def message(message_id):
     user = db.query(User).filter_by(session_token=session_token).first()
     message = db.query(Message).get(int(message_id))
     return render_template("message.html", message=message, user=user)
+
+
+@app.route("/message/<message_id>/delete", methods=["POST"])
+def message_delete(message_id):
+    session_token = request.cookies.get("session_token")
+    user = db.query(User).filter_by(session_token=session_token).first()
+    message = db.query(Message).get(int(message_id))
+    if user.id == message.receiver_id:
+        db.delete(message)
+        db.commit()
+        return redirect(url_for("received"))
+    return redirect(url_for("received"))
 
 
 @app.route("/profile", methods=["GET"])
