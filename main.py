@@ -92,7 +92,6 @@ def received():
     user = db.query(User).filter_by(session_token=session_token).first()
     user_id = user.id
     received_messages = db.query(Message).filter_by(receiver_id=user_id).all()
-
     return render_template("received.html", received_messages=received_messages, user=user)
 
 
@@ -102,13 +101,6 @@ def sent():
     user = db.query(User).filter_by(session_token=session_token).first()
     user_id = user.id
     sent_messages = db.query(Message).filter_by(sender_id=user_id).all()
-    message1 = db.query(Message).filter_by(sender_id=user_id).first()
-
-    if request.method == "POST":
-        db.delete(message1)
-        db.commit()
-        return redirect(url_for("sent"))
-
     return render_template("sent.html", sent_messages=sent_messages, user=user)
 
 
@@ -182,7 +174,6 @@ def profile_edit():
 @app.route("/profile/delete", methods=["GET", "POST"])
 def profile_delete():
     session_token = request.cookies.get("session_token")
-
     user = db.query(User).filter_by(session_token=session_token).first()
 
     if request.method == "GET":

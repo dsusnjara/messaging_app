@@ -15,13 +15,13 @@
 <div class="navbar navbar-expand-sm bg-dark navbar-default">
     <div class="container">
         <div class="navbar-header">
-            <a class="navbar-brand" href="#">ChatKa</a>
+            <a class="navbar-brand" href="/">ChatKa</a>
         </div>
             <ul class="navbar-nav">
-                <li class="navbar-item">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
                 {% if user %}
+                <li class="navbar-item">
+                    <a class="nav-link" href="#">Hello, {{ user.name }}</a>
+                </li>
                 <li class="navbar-item">
                     <a class="nav-link" href="/send">New Message</a>
                 </li>
