@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Your Profile</h3>
+<div class="jumbotron">
+    <div class="form-group">
+        <p><strong>Your name:</strong> {{ user.name }}</p>
+        <p><strong>Your email:</strong> {{ user.email }}</p>
+        </p>
+    </div>
+</div>
+
+{% endblock content %}

@@ -1,19 +1,17 @@
-from flask import Flask, render_template, request, make_response, redirect, url_for
-from models import db, User, Message
-from os import urandom
+from app import app
+from flask import render_template, request, make_response, redirect, url_for, flash
+from app.models import db, User, Message
 import hashlib
-import uuid
-
-app = Flask(__name__)
-db.create_all()
-app.secret_key = urandom(24)
+from app.forms import LoginForm
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.urls import url_parse
 
 
 @app.route("/", methods=["GET"])
+@app.route("/index", methods=["GET"])
+@login_required
 def index():
-    session_token = request.cookies.get("session_token")
-    user = db.query(User).filter_by(session_token=session_token).first()
-    return render_template("index.html", user=user)
+    return render_template("index.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -36,31 +34,20 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        name = request.form.get("user-name")
-        password = request.form.get("user-password")
-
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-
-        user = db.query(User).filter_by(name=name).first()
-
-        if not user or hashed_password != user.password:
-            error_message = "Wrong username or password! Try again!"
-            return render_template("login.html", message=error_message)
-
-        elif hashed_password == user.password:
-            session_token = str(uuid.uuid4())
-            user.session_token = session_token
-
-            db.add(user)
-            db.commit()
-
-        response = make_response(redirect(url_for("index")))
-        response.set_cookie("session_token", user.session_token, httponly=True, samesite="Strict")
-
-        return response
-
-    return render_template("login.html")
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password_hash(form.password.data):
+            flash("Invalid username or password.")
+            return redirect(url_for("login"))
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get("next")
+        if not next_page or url_parse(next_page).netloc != "":
+            next_page = url_for("index")
+        return redirect(next_page)
+    return render_template("login.html", title="Sign In", form=form)
 
 
 @app.route("/send", methods=["GET", "POST"])
@@ -191,10 +178,5 @@ def profile_delete():
 
 @app.route("/logout")
 def logout():
-    response = make_response(redirect(url_for("index")))
-    response.set_cookie("session_token", expires=0)
-    return response
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    logout_user()
+    return redirect(url_for("index"))
