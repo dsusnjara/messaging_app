@@ -1,8 +1,9 @@
+from datetime import datetime
 from app import app
 from flask import render_template, request, make_response, redirect, url_for, flash
 from app.models import db, User, Message
 import hashlib
-from app.forms import LoginForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 
@@ -16,20 +17,18 @@ def index():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == "POST":
-        name = request.form.get("user-name")
-        email = request.form.get("user-email")
-        password = request.form.get("user-password")
-
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-
-        user = User(name=name, email=email, password=hashed_password)
-
-        db.add(user)
-        db.commit()
-
-        return make_response(redirect(url_for("login")))
-    return render_template("register.html")
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # noinspection PyArgumentList
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash("You have registered your account successfully.")
+        return redirect(url_for("login"))
+    return render_template("register.html", title="Register", form=form)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -111,51 +110,27 @@ def message_delete(message_id):
     return redirect(url_for("received"))
 
 
-@app.route("/profile", methods=["GET"])
-def profile():
-    session_token = request.cookies.get("session_token")
-    user = db.query(User).filter_by(session_token=session_token).first()
-    name = User.name
-    users = db.query(User).filter_by(name=name).all()
-    return render_template("profile.html", user=user, users=users)
+@app.route("/user/<username>")
+@login_required
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    return render_template("user.html", title=f"{user.username}", user=user)
 
 
-@app.route("/profile/edit", methods=["GET", "POST"])
-def profile_edit():
-    session_token = request.cookies.get("session_token")
-    user = db.query(User).filter_by(session_token=session_token).first()
-
-    if request.method == "GET":
-        return render_template("profile_edit.html", user=user)
-
-    elif request.method == "POST":
-        name = request.form.get("profile-name")
-        email = request.form.get("profile-email")
-        old_password = request.form.get("old-password")
-        new_password = request.form.get("new-password")
-
-        if old_password and new_password:
-            hashed_old_password = hashlib.sha256(old_password.encode()).hexdigest()
-            hashed_new_password = hashlib.sha256(new_password.encode()).hexdigest()
-
-            if hashed_old_password == user.password:
-                user.password = hashed_new_password
-                db.add(user)
-                db.commit()
-                info = "Password successfully changed!"
-                return render_template("profile_edit.html", info=info, user=user)
-
-            else:
-                info = "Wrong password! Try again!"
-                return render_template("profile_edit.html", info=info, user=user)
-
-        user.name = name
-        user.email = email
-
-        db.add(user)
-        db.commit()
-
-        return redirect(url_for("profile"))
+@app.route("/edit_profile", methods=["GET", "POST"])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        flash("Your changes have been saved.")
+        return redirect(url_for("edit_profile"))
+    elif request.method == "GET":
+        form.username.data = current_user.username
+        form.about_me.data= current_user.about_me
+    return render_template("edit_profile.html", title="Edit Profile", form=form)
 
 
 @app.route("/profile/delete", methods=["GET", "POST"])
@@ -174,6 +149,14 @@ def profile_delete():
         db.commit()
 
         return redirect(url_for("index"))
+
+
+@app.before_request
+def before_request():
+    """Update user's last_seen attribute on every request made."""
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
 
 
 @app.route("/logout")
