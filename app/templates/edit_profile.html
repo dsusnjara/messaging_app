@@ -21,5 +21,8 @@
         <p>
             {{ form.submit() }}
         </p>
+        <p>
+            <a href="{{ url_for('profile_delete') }}">Delete this profile?</a>
+        </p>
     </form>
 {% endblock content %}

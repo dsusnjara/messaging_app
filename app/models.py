@@ -44,8 +44,8 @@ class Message(db.Model):
     __tablename__ = "message"
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.Text)
-    message = db.Column(db.Text)
+    title = db.Column(db.String(120))
+    body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     sender_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     receiver_id = db.Column(db.Integer, db.ForeignKey("user.id"))

@@ -34,3 +34,16 @@ class EditProfileForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
     about_me = TextAreaField("About me", validators=[Length(min=0, max=140)])
     submit = SubmitField("Submit")
+
+
+class MessageForm(FlaskForm):
+    title = TextAreaField("Title", validators=[DataRequired(message="Message has to have a title")])
+    body = TextAreaField("Message", validators=[DataRequired(message="Please don't send empty messages!")])
+    send_to = StringField("Send To", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+    def validate_send_to(self, send_to):
+        user = User.query.filter_by(username=send_to.data).first()
+        #//TODO: uppercase and lowercase insesitivity
+        if user is None:
+            raise ValidationError("That user does not exist")

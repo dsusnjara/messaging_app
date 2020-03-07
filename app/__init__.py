@@ -42,3 +42,4 @@ if not app.debug:
     app.logger.info("MessApp startup")
 
 from app import routes, models, errors
+from app.routes import routes, auth

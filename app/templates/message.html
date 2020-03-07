@@ -1,18 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="jumbotron">
-    <div class="row" style="padding:10px">
-        <h4>Title: {{ message.title }}</h4>
-    </div>
-    <div class="row" style="padding:10px">
-        <h4>Message: </h4>
-    </div>
-    <div class="container" style="padding:10px">
-        {{ message.message }}
-    </div>
-    <div class="row" style="padding:20px">
-        <a class="btn btn-primary" href="/send">Reply</a>
-    </div>
-</div>
+<table>
+    <tr valign="top">
+        <td>
+            <h4>Title: {{ message.title }}</h4>
+            <p>Message:</p>
+            <p>{{ message.body }}</p><br>
+            <p>Sent by: {{ message.sender.username }}</p>
+            {% if current_user.id == message.receiver_id %}
+                <a href="{{ url_for('message_delete', message_id=message.id) }}">Delete</a>
+            {% endif %}
+        </td>
+    </tr>
+</table>
 {% endblock content %}
